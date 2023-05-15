@@ -1,4 +1,4 @@
-from src.loader.normals_loader import CustomKitti, CustomKittiProcessing
+from src.loader.normals_loader import CustomKitti, CustomKittiProcessing, CustomCarlaProcessing, CustomCarla
 from src.loader.normals_loader import prep_cross_stacked, prep_long_short_stacked
 from  src.utils.metrics import *
 
@@ -31,6 +31,26 @@ def get_loaders_param(func, batch_size = 4, workers = 12):
     training_data = CustomKittiProcessing("/home/polosatik/mnt/kitty/dataset/sequences/00/", func) 
     validation_data = CustomKittiProcessing("/home/polosatik/mnt/kitty/dataset/sequences/00/",func, mode="val") 
     test_data = CustomKittiProcessing("/home/polosatik/mnt/kitty/dataset/sequences/00/", func, mode="test") 
+
+    training_loader = DataLoader(training_data, batch_size=batch_size, shuffle=True, num_workers=workers)
+    validation_loader = DataLoader(validation_data, batch_size=batch_size, shuffle=False, num_workers=workers)
+    test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False, num_workers=workers)
+    return training_loader, validation_loader, test_loader
+
+def get_loaders_param_carla(func, batch_size = 4, workers = 12):
+    training_data = CustomCarlaProcessing("/home/polosatik/Datasets/carla/", func) 
+    validation_data = CustomCarlaProcessing("/home/polosatik/Datasets/carla/",func, mode="val") 
+    test_data = CustomCarlaProcessing("/home/polosatik/Datasets/carla/", func, mode="test") 
+
+    training_loader = DataLoader(training_data, batch_size=batch_size, shuffle=True, num_workers=workers)
+    validation_loader = DataLoader(validation_data, batch_size=batch_size, shuffle=False, num_workers=workers)
+    test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False, num_workers=workers)
+    return training_loader, validation_loader, test_loader
+
+def get_loaders_carla(batch_size = 4, workers = 12):
+    training_data = CustomCarla("/home/polosatik/Datasets/carla/") 
+    validation_data = CustomCarla("/home/polosatik/Datasets/carla/", mode="val") 
+    test_data = CustomCarla("/home/polosatik/Datasets/carla/",mode="test") 
 
     training_loader = DataLoader(training_data, batch_size=batch_size, shuffle=True, num_workers=workers)
     validation_loader = DataLoader(validation_data, batch_size=batch_size, shuffle=False, num_workers=workers)
