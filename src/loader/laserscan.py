@@ -1,12 +1,11 @@
-
 import numpy as np
 from torch import int16
-
+import open3d as o3d
 
 class LaserScan:
   """Class that contains LaserS
   can with x,y,z,r"""
-  EXTENSIONS_SCAN = ['.bin']
+  EXTENSIONS_SCAN = ['.bin', ".pcd"]
 
   def __init__(self, project=False, H=64, W=1024, fov_up=3.0, fov_down=-25.0):
     self.project = project
@@ -67,17 +66,25 @@ class LaserScan:
       raise TypeError("Filename should be string type, "
                       "but was {type}".format(type=str(type(filename))))
 
-    # check extension is a laserscan
-    if not any(filename.endswith(ext) for ext in self.EXTENSIONS_SCAN):
-      raise RuntimeError("Filename extension is not valid scan file.")
+    # # check extension is a laserscan
+    # if not any(filename.endswith(ext) for ext in self.EXTENSIONS_SCAN):
+    #   raise RuntimeError("Filename extension is not valid scan file.")
 
     # if all goes well, open pointcloud
-    scan = np.fromfile(filename, dtype=np.float32)
-    scan = scan.reshape((-1, 4))
+    if filename.endswith(self.EXTENSIONS_SCAN[0]):
+      scan = np.fromfile(filename, dtype=np.float32)
+      scan = scan.reshape((-1, 4))
+      points = scan[:, 0:3]    # get xyz
+      remissions = scan[:, 3]  # get remission
+    elif filename.endswith(self.EXTENSIONS_SCAN[1]):
+      pcd = o3d.io.read_point_cloud(filename)
+      points = np.asarray(pcd.points)    # get xyz
+      remissions = None  # get remission
+    else:
+      raise RuntimeError("Filename extension is not valid scan file.")
 
     # put in attribute
-    points = scan[:, 0:3]    # get xyz
-    remissions = scan[:, 3]  # get remission
+    
     self.set_points(points, remissions)
 
   def set_points(self, points, remissions=None):
@@ -255,10 +262,11 @@ class SemLaserScan(LaserScan):
     self.inst_label_color = self.inst_label_color.reshape((-1, 3))
 
   def do_label_projection(self):
+    self.mask = self.proj_idx >= 0
+    # print("orig idx shape: ", self.proj_idx.shape, "sem_label shape ", self.sem_label.shape, self.proj_idx[self.mask].shape, self.proj_idx.shape)
     # only map colors to labels that exist
-    mask = self.proj_idx >= 0
 
     # semantics
-    self.proj_sem_label[mask] = self.sem_label[self.proj_idx[mask]]
+    self.proj_sem_label[self.mask] = self.sem_label[self.proj_idx[self.mask]]
     # instances
-    self.proj_inst_label[mask] = self.inst_label[self.proj_idx[mask]]
+    self.proj_inst_label[self.mask] = self.inst_label[self.proj_idx[self.mask]]

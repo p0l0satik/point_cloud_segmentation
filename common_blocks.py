@@ -3,6 +3,7 @@ from src.loader.normals_loader import prep_cross_stacked, prep_long_short_stacke
 from  src.utils.metrics import *
 
 from unet import UNet
+from src.nets.unet import UNet as UNetInterlayer
 
 
 from src.nets.loss import dice_loss
@@ -83,6 +84,32 @@ def get_model_and_optimizer(device, in_ch = 3, num_encoding_blocks=5, patience=3
                                                            threshold=0.01)
     return model, optimizer, scheduler
 
+def get_model_and_optimizer_interlayer(device, in_ch = 3, num_encoding_blocks=2, patience=3):
+    torch.manual_seed(0)
+    np.random.seed(0)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+      
+    unet = UNetInterlayer(
+          in_channels=in_ch,
+          out_classes=2,
+          dimensions=2,
+          num_encoding_blocks=num_encoding_blocks,
+          normalization='batch',
+          upsampling_type='linear',
+          padding=True,
+          activation='ReLU',
+      ).to(device)
+    model = unet
+      
+    optimizer = torch.optim.AdamW(model.parameters())
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 
+                                                           mode='min', 
+                                                           factor=0.1, 
+                                                           patience=patience, 
+                                                           threshold=0.01)
+    return model, optimizer, scheduler
+
 def one_epoch(device, loader, optimizer, model, criterion=None, train=True):
     running_loss = 0.
     last_loss = 0.
@@ -94,6 +121,7 @@ def one_epoch(device, loader, optimizer, model, criterion=None, train=True):
         inputs = torch.tensor(inputs).to(device=device, dtype=torch.float)
         labels = torch.tensor(labels).to(device=device, dtype=torch.long)
 
+        
         if train:
             optimizer.zero_grad()
 
@@ -241,7 +269,7 @@ class Config:
         self.curr_time = datetime.now().strftime('%Y%m%d_%H%M%S')
 
     def prepare(self):
-        self.path = f"new_chpt/{self.run_name}_{self.curr_time}/"
+        self.path = f"new_2_chpt/{self.run_name}_{self.curr_time}/"
 
         isExist = os.path.exists(self.path)
         if not isExist:
@@ -258,7 +286,7 @@ class Config:
         )
 
         wandb.init(
-            project="PlaneSegmentation",
+            project="PlaneSegmentationImproved",
             notes=self.description,
             config=wandb_config,
             mode="online"
